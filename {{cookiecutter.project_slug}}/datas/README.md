@@ -1,3 +1,3 @@
 # datas
 
-contain all the data (raw or processed) used in the inversion.
+contain all the data (raw or processed) used in the inversion, each placed in a subdirectory.
