@@ -17,10 +17,11 @@ def upgrader_scratch():
     # copy files
     for each_scratch_dir in dirs_in_scratch:
         if(isdir(each_scratch_dir)):
-            work_dir = join(cwd, each_scratch_dir, ".")
+            work_dir = join(cwd, each_scratch_dir)
+            cp_dir = join(cwd, each_scratch_dir, ".")
             scratch_dir = join(
                 "{{cookiecutter.scratch_path}}", each_scratch_dir)
-            command = f"cp -R {work_dir} {scratch_dir}"
+            command = f"cp -R {cp_dir} {scratch_dir}"
             subprocess.call(command, shell=True)
             command = f"rm -rf {work_dir}"
             subprocess.call(command, shell=True)
