@@ -17,4 +17,4 @@ def copy_specfem_plugins():
 
 if __name__ == "__main__":
     download_specfem()
-    copy_specfem_plugins
+    copy_specfem_plugins()
