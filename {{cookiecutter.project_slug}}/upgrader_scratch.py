@@ -17,7 +17,7 @@ def upgrader_scratch():
     # copy files
     for each_scratch_dir in dirs_in_scratch:
         if(isdir(each_scratch_dir)):
-            work_dir = join(cwd, each_scratch_dir)
+            work_dir = join(cwd, each_scratch_dir, ".")
             scratch_dir = join(
                 "{{cookiecutter.scratch_path}}", each_scratch_dir)
             command = f"cp -R {work_dir} {scratch_dir}"
