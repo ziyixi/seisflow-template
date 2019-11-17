@@ -1,5 +1,5 @@
 import subprocess
-from os.path import join
+from os.path import join, isdir
 import os
 cwd = os.getcwd()
 
@@ -16,14 +16,16 @@ def upgrader_scratch():
     scratch_dir = "{{cookiecutter.scratch_path}}"
     # copy files
     for each_scratch_dir in dirs_in_scratch:
-        work_dir = join(cwd, each_scratch_dir)
-        scratch_dir = join("{{cookiecutter.scratch_path}}", each_scratch_dir)
-        command = f"cp -R {work_dir} {scratch_dir}"
-        subprocess.call(command, shell=True)
-        command = f"rm -rf {work_dir}"
-        subprocess.call(command, shell=True)
-        command = f"ln -s {scratch_dir} {work_dir}"
-        subprocess.call(command, shell=True)
+        if(isdir(each_scratch_dir)):
+            work_dir = join(cwd, each_scratch_dir)
+            scratch_dir = join(
+                "{{cookiecutter.scratch_path}}", each_scratch_dir)
+            command = f"cp -R {work_dir} {scratch_dir}"
+            subprocess.call(command, shell=True)
+            command = f"rm -rf {work_dir}"
+            subprocess.call(command, shell=True)
+            command = f"ln -s {scratch_dir} {work_dir}"
+            subprocess.call(command, shell=True)
 
 
 if __name__ == "__main__":
