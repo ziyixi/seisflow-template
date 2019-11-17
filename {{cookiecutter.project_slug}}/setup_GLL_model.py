@@ -10,6 +10,7 @@ def setup_GLL_model():
         gll_path = "{{cookiecutter.gll_path}}"
         new_gll_path = join(cwd, "models", "raw")
         command = f"cp -r {gll_path} {new_gll_path}"
+        subprocess.call(command, shell=True)
         specfem_root = "{{cookiecutter.specfem_root}}"
         command = f"ln -s {new_gll_path} {specfem_root}/DATA/GLL"
         subprocess.call(command, shell=True)
