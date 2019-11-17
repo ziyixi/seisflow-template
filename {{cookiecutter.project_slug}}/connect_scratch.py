@@ -9,7 +9,7 @@ def connect_scratch():
     Move some files to the scratch directory and make a soft link
     """
     dirs_in_work = ["cmts", "configuration", "data_info",
-                    "misfit", "scripts", "specfem_plugins", "{{cookiecutter.specfem_root}}"]
+                    "misfit", "scripts", "specfem_plugins", "{{cookiecutter.specfem_root}}", "figures"]
     dirs_in_scratch = ["databases_mpis", "datas", "outputs",
                        "simulation_test", "simulations", "specfem_ref", "syncs", "models"]
 
