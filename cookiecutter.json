@@ -1,0 +1,8 @@
+{
+  "project_slug": "Japan_slab",
+  "specfem_root": "specfem3d_globe",
+  "specfem_url": "https://github.com/geodynamics/specfem3d_globe",
+  "model_type": ["GLL", "Internal", "PPM"],
+  "gll_path": "/scratch/05880/tg851791/work/generate_hybrid_v703/gll_work/model/s362ani_good_min_tao_smooth",
+  "scratch_path": "/scratch/05880/tg851791/Japan_Slab"
+}
