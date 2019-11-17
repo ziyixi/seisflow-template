@@ -1,2 +1,3 @@
 *.asdf
 *.bin
+{{specfem_root}}/*
