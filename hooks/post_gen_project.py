@@ -1,5 +1,7 @@
 import subprocess
 from os.path import join
+import os
+cwd = os.getcwd()
 
 
 def copy_specfem_plugins():
@@ -36,14 +38,14 @@ def connect_scratch():
     subprocess.call(command, shell=True)
     # since the scratch will keep the directory structure, it's safe to move the directories.
     for each_scratch_dir in dirs_in_scratch:
-        from_dir = f"./{each_scratch_dir}"
+        from_dir = join(cwd, each_scratch_dir)
         to_dir = join("{{cookiecutter.scratch_path}}", each_scratch_dir)
         command = f"mv {from_dir} {to_dir}"
         subprocess.call(command, shell=True)
         command = f"ln -s {to_dir} {from_dir}"
         subprocess.call(command, shell=True)
     for each_work_dir in dirs_in_work:
-        work_path = each_work_dir
+        work_path = join(cwd, each_work_dir)
         scratch_path = join("{{cookiecutter.scratch_path}}", each_work_dir)
         command = f"ln -s {work_path} {scratch_path}"
         subprocess.call(command, shell=True)
