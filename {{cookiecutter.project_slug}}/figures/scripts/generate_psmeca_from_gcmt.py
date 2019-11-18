@@ -41,7 +41,7 @@ def split_tensor_exponent(tensor):
 @click.option('--output', required=True, type=str)
 @click.option('--text/--no-text', default=False)
 def main(gcmt, output, text):
-    gcmt_dir = join("..", "..", "cmts")
+    gcmt_dir = join("..", "..", "cmts", gcmt)
     output_path = join("..", "generated", output)
     tensor_dict = get_tensor_dict(join(gcmt_dir, "*"))
     with open(output_path, "w") as f:
