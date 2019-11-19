@@ -33,7 +33,6 @@ def load_asdf_info(asdf_fname):
 def load_station_info(station_fname):
     # station file
     stations = np.loadtxt(station_fname, dtype=np.str)
-    stations[:, 2:] = stations[:, 2:].astype(np.float)
     return stations
 
 
@@ -61,7 +60,7 @@ def kernel_calculate_travel_time(event_pair, stations=None):
     result = {}
     evla = event_pair.lat
     evlo = event_pair.lon
-    evdp = event_pair.dep
+    evdp = event_pair.dep/1000
     event_time = event_pair.time
 
     for row in stations:
@@ -87,8 +86,8 @@ def kernel_calculate_travel_time(event_pair, stations=None):
         station = row[0]
         network = row[1]
         net_sta = f"{network}.{station}"
-        stla = row[2]
-        stlo = row[3]
+        stla = float(row[2])
+        stlo = float(row[3])
         arrivals = model.get_travel_times_geo(
             evdp, evla, evlo, stla, stlo, phase_list)
 
@@ -106,7 +105,7 @@ def kernel_calculate_travel_time(event_pair, stations=None):
                     name = "P"
                 if (name == "s"):
                     name = "S"
-                if (result_template[name] != None):
+                if (result_template[name] == None):
                     result_template[name] = time
         result[net_sta] = result_template
     return result

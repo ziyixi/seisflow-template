@@ -1,4 +1,4 @@
-from .windows import Window
+from windows import Window
 import pyasdf
 import numpy as np
 from obspy.signal.cross_correlation import correlate, xcorr_max

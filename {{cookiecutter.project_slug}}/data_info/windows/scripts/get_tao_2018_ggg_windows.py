@@ -2,11 +2,12 @@
 Get windows described in tao's 2018 GGG paper.
 """
 
-from .window import Window, Windows_collection
+from window import Window, Windows_collection
 import obspy
 from os.path import join, basename, dirname, abspath
 import configparser
 import pickle
+import click
 
 
 def load_configure(config_fname):
@@ -33,7 +34,7 @@ def load_taveltime(traveltime_dir):
 
 
 def load_eventtime(traveltime_dir):
-    fpath = join(traveltime_dir, f"traveltime.event_time.pkl")
+    fpath = join(traveltime_dir, f"extra.event_time.pkl")
     with open(fpath, "rb") as handle:
         eventtime = pickle.load(handle)
     return eventtime
@@ -59,7 +60,7 @@ def generate_windows(traveltime, event_time, time_length):
             # zr
             for each_phase in phases_zr:
                 each_phase_traveltime = traveltime[each_phase][each_gcmtid][each_net_sta]
-                if (each_phase == None):
+                if (each_phase_traveltime == None):
                     continue
                 elif (each_phase_traveltime > time_length):
                     continue
@@ -79,7 +80,7 @@ def generate_windows(traveltime, event_time, time_length):
             # t
             for each_phase in phases_t:
                 each_phase_traveltime = traveltime[each_phase][each_gcmtid][each_net_sta]
-                if (each_phase == None):
+                if (each_phase_traveltime == None):
                     continue
                 elif (each_phase_traveltime > time_length):
                     continue

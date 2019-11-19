@@ -1,6 +1,3 @@
-"""
-Define the structre of the window
-"""
 import pickle
 
 
@@ -9,7 +6,7 @@ class Window(object):
     Class defines a single window used
     """
 
-    def __init__(self, left=None, right=None, channel=None, network=None, gcmtid=None, station=None, phases=[]):
+    def __init__(self, left=None, right=None, channel=None, network=None, gcmtid=None, station=None, phases=None):
         super().__init__()
         self.left = left
         self.right = right
@@ -20,7 +17,7 @@ class Window(object):
         self.phases = phases
 
     def __repr__(self):
-        return f"Windows(left={self.left},right={self.right},channel={self.channel},network={self.network},gcmtid={self.gcmtid},station={self.station},phases={self.phase})"
+        return f"Windows(left={self.left},right={self.right},channel={self.channel},network={self.network},gcmtid={self.gcmtid},station={self.station},phases={self.phases})"
 
     def __add__(self, others):
         left = min(self.left, others.left)
@@ -30,13 +27,12 @@ class Window(object):
         assert self.station == others.station
         assert self.gcmtid == others.gcmtid
         phases = self.phases + others.phases
-        return Window(left=left, right=right, channel=self.channel, network=self.network, station=self.station, phases=phases)
+        return Window(left=left, right=right, channel=self.channel, network=self.network, station=self.station, phases=self.phases+others.phases, gcmtid=self.gcmtid)
 
 
 class Windows_collection(object):
-    def __init__(self, windows=[]):
-        super().__init__()
-        self.windows = windows
+    def __init__(self):
+        self.windows = []
 
     def append_window(self, window):
         self.windows.append(window)
