@@ -1,3 +1,4 @@
-*.asdf
+*.h5
 *.bin
 {{cookiecutter.specfem_root}}/*
+.vscode/*
