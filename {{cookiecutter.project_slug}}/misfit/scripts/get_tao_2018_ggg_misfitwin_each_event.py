@@ -22,8 +22,9 @@ def load_configure(config_fname):
     output_dir = config["path"]["output_dir"]
     used_gcmtid = config["setting"]["used_gcmtid"]
     consider_surface = config["setting"].getboolean("consider_surface")
+    use_tqdm = config["setting"].getboolean("use_tqdm")
     return (windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
-            data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface)
+            data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm)
 
 
 def load_pickle(pickle_path):
@@ -84,34 +85,60 @@ def prepare_windows(windows, used_gcmtid, consider_surface):
     return new_windows
 
 
-def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t):
+def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, use_tqdm):
     data_asdf_body = pyasdf.ASDFDataSet(data_asdf_body_path)
     sync_asdf_body = pyasdf.ASDFDataSet(sync_asdf_body_path)
     data_asdf_surface = pyasdf.ASDFDataSet(data_asdf_surface_path)
     sync_asdf_surface = pyasdf.ASDFDataSet(sync_asdf_surface_path)
-    for net_sta in misfit_windows:
-        for category in misfit_windows[net_sta]:
-            for each_window in misfit_windows[net_sta][category].windows:
-                # update the first arrival
-                if(each_window.channel == "Z" or each_window.channel == "R"):
-                    each_window.update_first_arrival(first_arrival_zr)
-                elif (each_window.channel == "T"):
-                    each_window.update_first_arrival(first_arrival_t)
-                else:
-                    raise Exception(
-                        "channel not correct in updating the first arrival!")
-                # update snr,deltat and cc
-                if((category == "z") or (category == "r") or (category == "t")):
-                    each_window.update_snr(data_asdf_body)
-                    each_window.update_cc_deltat(
-                        data_asdf_body, sync_asdf_body)
-                elif((category == "surface_z") or (category == "surface_r") or (category == "surface_t")):
-                    each_window.update_snr(data_asdf_surface)
-                    each_window.update_cc_deltat(
-                        data_asdf_surface, sync_asdf_surface)
-                else:
-                    raise Exception(
-                        "category is not correct in calculatng snr,delta and cc")
+    if (use_tqdm):
+        import tqdm
+        for net_sta in tqdm.tqdm(misfit_windows, total=len(misfit_windows)):
+            for category in misfit_windows[net_sta]:
+                for each_window in misfit_windows[net_sta][category].windows:
+                    # update the first arrival
+                    if(each_window.channel == "Z" or each_window.channel == "R"):
+                        each_window.update_first_arrival(first_arrival_zr)
+                    elif (each_window.channel == "T"):
+                        each_window.update_first_arrival(first_arrival_t)
+                    else:
+                        raise Exception(
+                            "channel not correct in updating the first arrival!")
+                    # update snr,deltat and cc
+                    if((category == "z") or (category == "r") or (category == "t")):
+                        each_window.update_snr(data_asdf_body)
+                        each_window.update_cc_deltat(
+                            data_asdf_body, sync_asdf_body)
+                    elif((category == "surface_z") or (category == "surface_r") or (category == "surface_t")):
+                        each_window.update_snr(data_asdf_surface)
+                        each_window.update_cc_deltat(
+                            data_asdf_surface, sync_asdf_surface)
+                    else:
+                        raise Exception(
+                            "category is not correct in calculatng snr,delta and cc")
+    else:
+        for net_sta in misfit_windows:
+            for category in misfit_windows[net_sta]:
+                for each_window in misfit_windows[net_sta][category].windows:
+                    # update the first arrival
+                    if(each_window.channel == "Z" or each_window.channel == "R"):
+                        each_window.update_first_arrival(first_arrival_zr)
+                    elif (each_window.channel == "T"):
+                        each_window.update_first_arrival(first_arrival_t)
+                    else:
+                        raise Exception(
+                            "channel not correct in updating the first arrival!")
+                    # update snr,deltat and cc
+                    if((category == "z") or (category == "r") or (category == "t")):
+                        each_window.update_snr(data_asdf_body)
+                        each_window.update_cc_deltat(
+                            data_asdf_body, sync_asdf_body)
+                    elif((category == "surface_z") or (category == "surface_r") or (category == "surface_t")):
+                        each_window.update_snr(data_asdf_surface)
+                        each_window.update_cc_deltat(
+                            data_asdf_surface, sync_asdf_surface)
+                    else:
+                        raise Exception(
+                            "category is not correct in calculatng snr,delta and cc")
     del data_asdf_body
     del sync_asdf_body
     del data_asdf_surface
@@ -126,7 +153,7 @@ def save_misfit_windows(misfit_windows, output_dir, used_gcmtid):
 
 
 def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
-        data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface):
+        data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm):
     # load windows
     windows = load_pickle(join(windows_dir, "windows.pkl"))
     # prepare windows
@@ -137,7 +164,7 @@ def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path
     first_arrival_zr = load_pickle(first_arrival_zr_path)
     first_arrival_t = load_pickle(first_arrival_t_path)
     misfit_windows = calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path,
-                                             sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t)
+                                             sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, use_tqdm)
     save_misfit_windows(misfit_windows, output_dir, used_gcmtid)
 
 
@@ -145,10 +172,10 @@ def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path
 @click.option('--conf', required=True, type=str, help="configuration file name in the configuration directory")
 def main(conf):
     config_path = join("..", "configuration", conf)
-    windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface = load_configure(
+    windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm = load_configure(
         config_path)
     run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
-        data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface)
+        data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm)
 
 
 if __name__ == "__main__":
