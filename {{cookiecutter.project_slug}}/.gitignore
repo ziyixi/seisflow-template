@@ -2,3 +2,4 @@
 *.bin
 {{cookiecutter.specfem_root}}/*
 .vscode/*
+*__pycache__*
