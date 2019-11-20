@@ -7,7 +7,7 @@ from obspy.signal.cross_correlation import correlate, xcorr_max
 class Misfit_window(Window):
     def __init__(self, parent_window):
         super().__init__(left=parent_window.left, right=parent_window.right, channel=parent_window.channel,
-                         network=parent_window.network, station=parent_window.station, phases=parent_window.phases, gcmtid=parent_window.gcmtid)
+                         network=parent_window.network, station=parent_window.station, phases=parent_window.phases.copy(), gcmtid=parent_window.gcmtid)
         self.net_sta = f"{self.network}.{self.station}"
         self.cc = None
         self.snr = None
@@ -52,4 +52,8 @@ class Misfit_window(Window):
         # use data as the reference, calculate cc and deltat
         cc_all = correlate(data_win_tr, sync_win_tr, None, demean=False)
         self.cc = cc_all[len(cc_all) // 2]
-        self.deltat, _ = xcorr_max(cc_all)
+        delta = data_tr.stats.delta
+        self.deltat = self.deltat*delta
+
+    def __repr__(self):
+        return f"Windows(left={self.left},right={self.right},channel={self.channel},network={self.network},gcmtid={self.gcmtid},station={self.station},phases={self.phases},snr={self.snr},deltat={self.deltat},cc={self.cc})"
