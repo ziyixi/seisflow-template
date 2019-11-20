@@ -52,6 +52,7 @@ class Misfit_window(Window):
         # use data as the reference, calculate cc and deltat
         cc_all = correlate(data_win_tr, sync_win_tr, None, demean=False)
         self.cc = cc_all[len(cc_all) // 2]
+        self.deltat, _ = xcorr_max(cc_all)
         delta = data_tr.stats.delta
         self.deltat = self.deltat*delta
 
