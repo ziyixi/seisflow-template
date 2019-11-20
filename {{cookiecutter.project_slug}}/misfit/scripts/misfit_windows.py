@@ -44,6 +44,7 @@ class Misfit_window(Window):
         data_tr = data_wg[data_tag].select(component=self.component).copy()
         sync_tr = sync_wg[sync_tag].select(component=self.component).copy()
         # we make the starttime of sync to be the same with data
+        assert np.abs(sync_tr.stats.starttime-data_tr.stats.starttime) <= 1.0
         sync_tr.stats.starttime = data_tr.stats.starttime
         # cut to the window
         data_win_tr = data_tr.slice(self.left, self.right)
