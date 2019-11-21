@@ -3,8 +3,9 @@ import obspy
 from os.path import join, basename, dirname, abspath
 import configparser
 import pickle
-from windows import Window, Windows_collection
+from window import Window, Windows_collection
 import pyasdf
+import click
 
 
 def load_configure(config_fname):
@@ -55,13 +56,13 @@ def prepare_windows(windows, used_gcmtid, consider_surface):
                 "r": Windows_collection(),
                 "t": Windows_collection()
             }
-        old_windows_z = windows_used_event[net_sta]["z"]
-        old_windows_r = windows_used_event[net_sta]["r"]
-        old_windows_t = windows_used_event[net_sta]["t"]
+        old_windows_z = windows_used_event[net_sta]["z"].windows
+        old_windows_r = windows_used_event[net_sta]["r"].windows
+        old_windows_t = windows_used_event[net_sta]["t"].windows
         if(consider_surface):
-            old_windows_surface_z = windows_used_event[net_sta]["surface_z"]
-            old_windows_surface_r = windows_used_event[net_sta]["surface_r"]
-            old_windows_surface_t = windows_used_event[net_sta]["surface_t"]
+            old_windows_surface_z = windows_used_event[net_sta]["surface_z"].windows
+            old_windows_surface_r = windows_used_event[net_sta]["surface_r"].windows
+            old_windows_surface_t = windows_used_event[net_sta]["surface_t"].windows
         # update to the new_windows
         for each_window in old_windows_z:
             new_windows[net_sta]["z"].append_window(
@@ -149,7 +150,7 @@ def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_
 def save_misfit_windows(misfit_windows, output_dir, used_gcmtid):
     output_path = join(output_dir, f"{used_gcmtid}.pkl")
     with open(output_path, "wb") as f:
-        pickle.dump(misfit_windows)
+        pickle.dump(misfit_windows, f)
 
 
 def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
