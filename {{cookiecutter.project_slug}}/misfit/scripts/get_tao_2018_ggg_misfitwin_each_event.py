@@ -180,9 +180,9 @@ def run(windows_dir, first_arrival_dir, baz_dir, data_asdf_body_path, sync_asdf_
 @click.option('--conf', required=True, type=str, help="configuration file name in the configuration directory")
 def main(conf):
     config_path = join("..", "configuration", conf)
-    windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm = load_configure(
+    windows_dir, first_arrival_dir, baz_dir, data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm = load_configure(
         config_path)
-    run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
+    run(windows_dir, first_arrival_dir, baz_dir, data_asdf_body_path, sync_asdf_body_path,
         data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm)
 
 

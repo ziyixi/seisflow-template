@@ -51,7 +51,8 @@ class Misfit_window(Window):
         signal_avg_power = np.sum(signal_data ** 2) / len(signal_data)
         signal_max_amp = np.max(np.abs(signal_data))
         self.snr_energy = 10 * np.log10(signal_avg_power / noise_avg_power)
-        self.snr_amp = 20*np.log10(signal_max_amp / noise_max_amp)
+        self.snr_amp = 20 * \
+            np.log10(np.abs(signal_max_amp) / np.abs(noise_max_amp))
 
     def update_cc_deltat_zerolagcc(self, data_asdf, sync_asdf):
         if ((self.net_sta not in data_asdf.waveforms.list()) or (self.net_sta not in sync_asdf.waveforms.list())):
@@ -91,7 +92,7 @@ class Misfit_window(Window):
         self.deltat = self.deltat * delta
         # update zero-lag cc and zero-lag deltat
         if (self.component == "Z"):
-            self.cc_zerolag = self.cc
+            self.cc_zerolag = self.similarity
             self.deltat_zerolag = self.deltat
         elif (self.component == "R"):
             # we should split the data to the N and E direction
