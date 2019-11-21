@@ -16,6 +16,7 @@ def load_configure(config_fname):
     # load configs
     windows_dir = config["path"]["windows_dir"]
     first_arrival_dir = config["path"]["first_arrival_dir"]
+    baz_dir = config["path"]["baz_dir"]
     data_asdf_body_path = config["path"]["data_asdf_body_path"]
     sync_asdf_body_path = config["path"]["sync_asdf_body_path"]
     data_asdf_surface_path = config["path"]["data_asdf_surface_path"]
@@ -24,7 +25,7 @@ def load_configure(config_fname):
     used_gcmtid = config["setting"]["used_gcmtid"]
     consider_surface = config["setting"].getboolean("consider_surface")
     use_tqdm = config["setting"].getboolean("use_tqdm")
-    return (windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
+    return (windows_dir, first_arrival_dir, baz_dir, data_asdf_body_path, sync_asdf_body_path,
             data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm)
 
 
@@ -86,7 +87,7 @@ def prepare_windows(windows, used_gcmtid, consider_surface):
     return new_windows
 
 
-def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, use_tqdm):
+def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path, sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, baz, use_tqdm):
     data_asdf_body = pyasdf.ASDFDataSet(data_asdf_body_path)
     sync_asdf_body = pyasdf.ASDFDataSet(sync_asdf_body_path)
     data_asdf_surface = pyasdf.ASDFDataSet(data_asdf_surface_path)
@@ -98,20 +99,22 @@ def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_
                 for each_window in misfit_windows[net_sta][category].windows:
                     # update the first arrival
                     if(each_window.channel == "Z" or each_window.channel == "R"):
-                        each_window.update_first_arrival(first_arrival_zr)
+                        each_window.update_first_arrival_baz(
+                            first_arrival_zr, baz)
                     elif (each_window.channel == "T"):
-                        each_window.update_first_arrival(first_arrival_t)
+                        each_window.update_first_arrival_baz(
+                            first_arrival_t, baz)
                     else:
                         raise Exception(
                             "channel not correct in updating the first arrival!")
                     # update snr,deltat and cc
                     if((category == "z") or (category == "r") or (category == "t")):
                         each_window.update_snr(data_asdf_body)
-                        each_window.update_cc_deltat(
+                        each_window.update_cc_deltat_zerolagcc(
                             data_asdf_body, sync_asdf_body)
                     elif((category == "surface_z") or (category == "surface_r") or (category == "surface_t")):
                         each_window.update_snr(data_asdf_surface)
-                        each_window.update_cc_deltat(
+                        each_window.update_cc_deltat_zerolagcc(
                             data_asdf_surface, sync_asdf_surface)
                     else:
                         raise Exception(
@@ -122,20 +125,22 @@ def calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_
                 for each_window in misfit_windows[net_sta][category].windows:
                     # update the first arrival
                     if(each_window.channel == "Z" or each_window.channel == "R"):
-                        each_window.update_first_arrival(first_arrival_zr)
+                        each_window.update_first_arrival_baz(
+                            first_arrival_zr, baz)
                     elif (each_window.channel == "T"):
-                        each_window.update_first_arrival(first_arrival_t)
+                        each_window.update_first_arrival_baz(
+                            first_arrival_t, baz)
                     else:
                         raise Exception(
                             "channel not correct in updating the first arrival!")
                     # update snr,deltat and cc
                     if((category == "z") or (category == "r") or (category == "t")):
                         each_window.update_snr(data_asdf_body)
-                        each_window.update_cc_deltat(
+                        each_window.update_cc_deltat_zerolagcc(
                             data_asdf_body, sync_asdf_body)
                     elif((category == "surface_z") or (category == "surface_r") or (category == "surface_t")):
                         each_window.update_snr(data_asdf_surface)
-                        each_window.update_cc_deltat(
+                        each_window.update_cc_deltat_zerolagcc(
                             data_asdf_surface, sync_asdf_surface)
                     else:
                         raise Exception(
@@ -153,7 +158,7 @@ def save_misfit_windows(misfit_windows, output_dir, used_gcmtid):
         pickle.dump(misfit_windows, f)
 
 
-def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path,
+def run(windows_dir, first_arrival_dir, baz_dir, data_asdf_body_path, sync_asdf_body_path,
         data_asdf_surface_path, sync_asdf_surface_path, output_dir, used_gcmtid, consider_surface, use_tqdm):
     # load windows
     windows = load_pickle(join(windows_dir, "windows.pkl"))
@@ -162,10 +167,12 @@ def run(windows_dir, first_arrival_dir, data_asdf_body_path, sync_asdf_body_path
     # calculate snr,cc,deltat
     first_arrival_zr_path = join(first_arrival_dir, "traveltime.P.pkl")
     first_arrival_t_path = join(first_arrival_dir, "traveltime.S.pkl")
+    baz_path = join(baz_dir, "extra.baz.pkl")
     first_arrival_zr = load_pickle(first_arrival_zr_path)
     first_arrival_t = load_pickle(first_arrival_t_path)
+    baz = load_pickle(baz_path)
     misfit_windows = calculate_snr_cc_deltat(data_asdf_body_path, sync_asdf_body_path, data_asdf_surface_path,
-                                             sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, use_tqdm)
+                                             sync_asdf_surface_path, misfit_windows, first_arrival_zr, first_arrival_t, baz, use_tqdm)
     save_misfit_windows(misfit_windows, output_dir, used_gcmtid)
 
 
