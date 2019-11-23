@@ -22,10 +22,10 @@ model = TauPyModel(model="ak135")
 def load_asdf_info(asdf_fname):
     # asdf file
     with ASDFDataSet(asdf_fname, mode="r") as asdf_file:
-        lat = asdf_file.events[0].origins[0].latitude
-        lon = asdf_file.events[0].origins[0].longitude
-        dep = asdf_file.events[0].origins[0].depth
-        time = asdf_file.events[0].origins[0].time
+        lat = asdf_file.events[0].preferred_origin().latitude
+        lon = asdf_file.events[0].preferred_origin().longitude
+        dep = asdf_file.events[0].preferred_origin().depth
+        time = asdf_file.events[0].preferred_origin().time
 
     return lat, lon, dep, time
 

@@ -7,11 +7,11 @@ import click
 def get_tensor_dict(event_xml):
     result = {}
     for item in obspy.read_events(event_xml):
-        id = item.origins[0].resource_id.id.split("/")[2]
+        id = item.preferred_origin().resource_id.id.split("/")[2]
         tensor = item.focal_mechanisms[0].moment_tensor.tensor
-        latitude = item.origins[0].latitude
-        longitude = item.origins[0].longitude
-        depth = item.origins[0].depth
+        latitude = item.preferred_origin().latitude
+        longitude = item.preferred_origin().longitude
+        depth = item.preferred_origin().depth
         result[id] = (tensor, longitude, latitude, depth)
     return result
 

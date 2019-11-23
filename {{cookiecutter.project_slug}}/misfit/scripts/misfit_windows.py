@@ -38,7 +38,7 @@ class Misfit_window(Window):
         if (len(data_wg[data_tag]) != 3):
             return
         data_tr = data_wg[data_tag].select(component=self.component)[0].copy()
-        event_time = data_asdf.events[0].origins[0].time
+        event_time = data_asdf.events[0].preferred_origin().time
         if (data_tr.stats.starttime >= event_time + self.first_arrival):
             return
         # get the noise window
@@ -151,17 +151,17 @@ class Misfit_window(Window):
             # no first arrival, we don't use that trace
             return 1e9
         else:
-            if(first_arrival >= 120):
+            if(first_arrival >= 150):
                 # the first part of the data may have some problem
                 noise_start = 100
-            elif(first_arrival >= 70):
+            elif(first_arrival >= 100):
                 noise_start = 50
             else:
                 noise_start = 0
         noise_win_start = event_time + noise_start
         # avoid containning the first arrival
-        if(first_arrival > 10):
-            noise_win_end = event_time+first_arrival-10
+        if(first_arrival > 30):
+            noise_win_end = event_time+first_arrival-30
         else:
             noise_win_end = event_time+first_arrival
         tr_noise = data_tr.slice(noise_win_start, noise_win_end)
