@@ -21,6 +21,11 @@ def load_pickle(pickle_path):
     return data
 
 
+def save_pickle(pickle_path, to_save):
+    with open(pickle_path, "wb") as f:
+        pickle.dump(to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 def load_configure(config_fname):
     current_file_dir = dirname(abspath(__file__))
     config_path = join(current_file_dir, "..", "configuration", config_fname)
@@ -39,7 +44,6 @@ def load_configure(config_fname):
 
     used_gcmtid = config["setting"]["used_gcmtid"]
     consider_surface = config["setting"].getboolean("consider_surface")
-    save_adjoint_trace = config["setting"].getboolean("save_adjoint_trace")
 
     use_geographical_weight = config["weight"].getboolean(
         "use_geographical_weight")
@@ -50,7 +54,7 @@ def load_configure(config_fname):
     deltat_weight = config["weight"]["deltat_weight"]
     return misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_asdf_body_path, \
         data_asdf_surface_path, sync_asdf_surface_path, raw_sync_asdf_surface_path, output_dir, stations_path,\
-        used_gcmtid, consider_surface,  save_adjoint_trace,\
+        used_gcmtid, consider_surface,  \
         use_geographical_weight, use_category_weight, snr_weight, cc_weight, deltat_weight
 
 
@@ -119,7 +123,7 @@ def cal_cos_weight(value, value1, value2):
 
 
 def weight_and_write_adjoint_source_asdf(
-        result, save_adjoint_trace, output_dir, used_gcmtid, snr_weight, cc_weight, deltat_weight, stations_path, time_offset, event):
+        result,  output_dir, used_gcmtid, snr_weight, cc_weight, deltat_weight, stations_path, time_offset, event, adjoint_source_length, trace_delta):
     """
     Write the adjoint source trace as asdf format, the waveforms will be the unweighted result, the aux part is the weighted adjoint source.
     """
@@ -127,24 +131,19 @@ def weight_and_write_adjoint_source_asdf(
     output_asdf = pyasdf.ASDFDataSet(output_asdf_path)
     # we should create a dict storing the weighting info.
     weighting_dict = {}
-    weighted_snr_cc_deltat_traces = {}
     snr1, snr2 = map(float, snr_weight.split(","))
     cc1, cc2 = map(float, cc_weight.split(","))
     deltat1, deltat2 = map(float, deltat_weight.split(","))
     # type result[net_sta][category] ->list of (misfit_window,trace)
     # it's better to only consider the result dict as misfit_windows may have some None values
+    # * update snr,cc,deltat
     for net_sta in result:
         weighting_dict[net_sta] = {}
-        weighted_snr_cc_deltat_traces[net_sta] = {}
         for category in result[net_sta]:
             if(len(result[net_sta][category]) == 0):
-                weighted_snr_cc_deltat_traces[net_sta][category] = None
-                weighting_dict[net_sta][category] = None
+                weighting_dict[net_sta][category] = []
                 continue
             else:
-                weighted_snr_cc_deltat_traces[net_sta][category] = result[net_sta][category][0][1].copy(
-                )
-                weighted_snr_cc_deltat_traces[net_sta][category].data[:] = 0.0
                 weighting_dict[net_sta][category] = []
             for each_item in result[net_sta][category]:
                 misfit_window, adjoint_trace = each_item
@@ -153,9 +152,9 @@ def weight_and_write_adjoint_source_asdf(
                 wdeltat = cal_cos_weight(
                     np.abs(misfit_window.deltat), deltat1, deltat2)
                 # use the weight to add the adjoint source together. (not normalized)
-                weighted_snr_cc_deltat_traces[net_sta][category].data += adjoint_trace.data*wsnr*wcc*wdeltat
                 weighting_dict[net_sta][category].append(
                     (misfit_window, Weight(wsnr, wcc, wdeltat, None, None)))
+    # * update category
     # get the number of measurements for different categories:
     count_categories = {}
     net_sta_sample = list(result.keys())[0]
@@ -172,36 +171,82 @@ def weight_and_write_adjoint_source_asdf(
     # we assume that the category counting is not related to snr,cc,deltat
     for net_sta in result:
         for category in result[net_sta]:
-            if(weighting_dict[net_sta][category] != None):
-                for each_weight in weighting_dict[net_sta][category]:
-                    each_weight._replace(category=1/count_categories[category])
+            for each_weight in weighting_dict[net_sta][category]:
+                each_weight._replace(
+                    category=1 / count_categories[category])
+    # * update geographical
     # get the distance matrix for geographical weighting, (consider all used stations)
     # we use data_asdf_waveforms_list to construct the distance matrix
     weighting_dict = update_geographical_weighting(
         weighting_dict, list(result.keys()), stations_path)
 
     # * and now we can write to the asdf file
-    # firstly we add the events info
-    output_asdf.add_quakeml(event)
-    category_mapper = {
-        "z": "ABZ",
-        "r": "ABR",
-        "t": "ABT",
-        "surface_z": "ASZ",
-        "surface_r": "ASR",
-        "surface_t": "AST"
-    }
+    # * result and the weighting_dict have the same structure.
+    # firstly we have to get the number of points for the adjoint trace
+    weight_normalize_factor = 0
+    final_adjoint_source = {}
     for net_sta in result:
-        to_write_stream = obspy.Stream()
+        # in the order of E,T,Z
+        adjoint_source = np.zeros((3, adjoint_source_length))
         for category in result[net_sta]:
-            if(weighting_dict[net_sta][category] != None):
-                weighted_snr_cc_deltat_traces[net_sta][category].stats.channel = category_mapper[category]
-                to_write_stream += weighted_snr_cc_deltat_traces[net_sta][category]
-        output_asdf.add_waveforms(
-            to_write_stream, tag="adjoint", event_id=event)
-    # * add auxiliary data
-    # we have to reconstruct the data from adjoint_trace and rotate them to Z,N,E.
-    # also we have to construct STATIONS_ADJOINT file
+            for each_item, each_weight in zip(result[net_sta][category], weighting_dict[net_sta][category]):
+                each_misfit_window, each_adjoint_trace = each_item
+                wcc = each_weight.cc
+                wdeltat = each_weight.deltat
+                wsnr = each_weight.snr
+                wcategory = each_weight.category
+                wgeographical = each_weight.geographical
+                weight_normalize_factor += wcc * wdeltat * wsnr * wcategory * wgeographical
+                if (each_misfit_window.component == "Z"):
+                    adjoint_source[2, :] += each_adjoint_trace.data * \
+                        wcc * wdeltat * wsnr * wcategory * wgeographical
+                elif (each_misfit_window.component == "R"):
+                    r_adjoint_source = each_adjoint_trace.data * \
+                        wcc * wdeltat * wsnr * wcategory * wgeographical
+                    theta = (each_misfit_window.baz - 180) % 360
+                    adjoint_source[0, :] += r_adjoint_source * \
+                        np.sin(np.deg2rad(theta))
+                    adjoint_source[1, :] += r_adjoint_source * \
+                        np.cos(np.deg2rad(theta))
+                elif (each_misfit_window.component == "T"):
+                    t_adjoint_source = each_adjoint_trace.data*wcc * \
+                        wdeltat * wsnr * wcategory * wgeographical
+                    theta = (each_misfit_window.baz - 90) % 360
+                    adjoint_source[0, :] += t_adjoint_source * \
+                        np.sin(np.deg2rad(theta))
+                    adjoint_source[1, :] += t_adjoint_source * \
+                        np.cos(np.deg2rad(theta))
+        final_adjoint_source[net_sta] = adjoint_source
+    # normalize the adjoint sources
+    for net_sta in final_adjoint_source:
+        final_adjoint_source[net_sta] /= weight_normalize_factor
+    # write each net_sta
+    components = ["E", "T", "Z"]
+    for net_sta in final_adjoint_source:
+        for index_component in range(3):
+            component = components[index_component]
+            specfem_adj_source = np.empty((adjoint_source_length, 2))
+            specfem_adj_source[:, 0] = np.linspace(
+                0, (adjoint_source_length - 1) * trace_delta, adjoint_source_length)
+            specfem_adj_source[:, 0] -= time_offset
+            specfem_adj_source[:,
+                               1] = final_adjoint_source[net_sta][index_component, :]
+            tag = net_sta.replace(".", "_") + "_" + components[index_component]
+            output_asdf.add_auxiliary_data(
+                data=specfem_adj_source, data_type="AdjointSource", path=tag)
+    del output_asdf
+    # save weighting pkl
+    save_pickle(join(output_dir, f"{used_gcmtid}.pkl"), weighting_dict)
+
+
+def write_stations_adjoint(data_asdf_body_waveforms_list, stations_path, output_dir, used_gcmtid):
+    stations_loaded = np.loadtxt("stations_path", dtype=np.str)
+    output_path = join(output_dir, f"{used_gcmtid}.stations")
+    with open(output_path, "w") as f:
+        for row in stations_loaded:
+            net_sta = f"{row[1].row[0]}"
+            if (net_sta in data_asdf_body_waveforms_list):
+                f.write(" ".join(row)+"\n")
 
 
 def update_geographical_weighting(weighting_dict, data_asdf_waveforms_list, stations_path):
@@ -252,15 +297,14 @@ def update_geographical_weighting(weighting_dict, data_asdf_waveforms_list, stat
     # update the weight
     for net_sta in weighting_dict:
         for category in weighting_dict[net_sta]:
-            if(weighting_dict[net_sta][category] != None):
-                for each_weight in weighting_dict[net_sta][category]:
-                    each_weight._replace(geographical=used_wt_dict[net_sta])
+            for each_weight in weighting_dict[net_sta][category]:
+                each_weight._replace(geographical=used_wt_dict[net_sta])
     return weighting_dict
 
 
 def run(misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_asdf_body_path,
         data_asdf_surface_path, sync_asdf_surface_path, raw_sync_asdf_surface_path, output_dir, stations_path,
-        used_gcmtid, consider_surface,  save_adjoint_trace,
+        used_gcmtid, consider_surface,
         use_geographical_weight, use_category_weight, snr_weight, cc_weight, deltat_weight
         ):
     # * get some info
@@ -288,6 +332,8 @@ def run(misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_a
     # loop through all the windows, calculate the adjoint source
     # the result contains the traces for the adjoint sources
     result = {}
+    adjoint_source_length = None
+    trace_delta = None
     for net_sta in data_asdf_body_waveforms_list:
         result[net_sta] = {}
         for category in misfit_windows[net_sta]:
@@ -327,13 +373,16 @@ def run(misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_a
                     component=component)[0]
                 adjoint_source_trace = calculate_adjoint_source_each_window(
                     each_window, raw_sync_asdf_trace, sync_asdf_trace, data_asdf_trace, mintime, maxtime)
+                adjoint_source_length = len(adjoint_source_trace.data)
+                trace_delta = adjoint_source_trace.stats.delta
                 result[net_sta][category].append(
                     (each_window, adjoint_source_trace))
     event = data_asdf_body_waveforms_list.events
     time_offset = sync_asdf_body.stats.starttime-raw_sync_asdf_body.stats.starttime
     weight_and_write_adjoint_source_asdf(
-        result, save_adjoint_trace, output_dir, used_gcmtid, snr_weight, cc_weight, deltat_weight, stations_path, time_offset, event)
-    write_stations_adjoint(data_asdf_body_waveforms_list, stations_path)
+        result,  output_dir, used_gcmtid, snr_weight, cc_weight, deltat_weight, stations_path, time_offset, event, adjoint_source_length, trace_delta)
+    write_stations_adjoint(data_asdf_body_waveforms_list,
+                           stations_path, output_dir, used_gcmtid)
 
     if(consider_surface):
         del data_asdf_surface
