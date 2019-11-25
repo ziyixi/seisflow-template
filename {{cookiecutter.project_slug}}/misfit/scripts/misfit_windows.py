@@ -4,6 +4,7 @@ import numpy as np
 from obspy.signal.cross_correlation import correlate, xcorr_max
 import sys
 import warnings
+import configparser
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -35,14 +36,11 @@ class Misfit_window(Window):
             return
         data_wg = data_asdf.waveforms[self.net_sta]
         data_tag = data_wg.get_waveform_tags()[0]
-        if (len(data_wg[data_tag]) != 3):
-            return
         data_tr = data_wg[data_tag].select(component=self.component)[0].copy()
-        event_time = data_asdf.events[0].preferred_origin().time
-        if (data_tr.stats.starttime >= event_time + self.first_arrival):
-            return
+        event_time = data_asdf.events[0].origins[0].time
         # get the noise window
         signal_st = data_tr.slice(self.left, self.right)
+        signal_st.taper(0.05, type="hann")
         # get averaged power ratio
         signal_data = signal_st.data
         # noise_avg_power = np.sum(noise_data**2) / len(noise_data)
@@ -55,18 +53,14 @@ class Misfit_window(Window):
             np.log10(np.abs(signal_max_amp) / np.abs(noise_max_amp))
 
     def update_cc_deltat_zerolagcc(self, data_asdf, sync_asdf):
-        if ((self.net_sta not in data_asdf.waveforms.list()) or (self.net_sta not in sync_asdf.waveforms.list())):
+        if (self.net_sta not in data_asdf.waveforms.list()):
             return
         # we assume the delta and the event_time are the same, but the starttime may be slightly different
         # also we have to make sure the net_sta is existing
         data_wg = data_asdf.waveforms[self.net_sta]
         data_tag = data_wg.get_waveform_tags()[0]
-        if (len(data_wg[data_tag]) != 3):
-            return
         sync_wg = sync_asdf.waveforms[self.net_sta]
         sync_tag = sync_wg.get_waveform_tags()[0]
-        if (len(sync_wg[sync_tag]) != 3):
-            return
         data_tr = data_wg[data_tag].select(component=self.component)[0].copy()
         sync_tr = sync_wg[sync_tag].select(component=self.component)[0].copy()
         # we make the starttime of sync to be the same with data
@@ -79,10 +73,12 @@ class Misfit_window(Window):
             sync_tr.trim(data_tr.stats.starttime, sync_tr.stats.endtime)
             sync_tr.stats.starttime = data_tr.stats.starttime
         else:
-            return
+            raise Exception("error in processed data asdf!")
         # cut to the window
         data_win_tr = data_tr.slice(self.left, self.right)
+        data_win_tr.taper(0.05, type="hann")
         sync_win_tr = sync_tr.slice(self.left, self.right)
+        sync_win_tr.taper(0.05, type="hann")
         # use data as the reference, calculate cc and deltat
         cc_all = correlate(data_win_tr, sync_win_tr, None,
                            demean=False, normalize="naive")
@@ -151,20 +147,21 @@ class Misfit_window(Window):
             # no first arrival, we don't use that trace
             return 1e9
         else:
-            if(first_arrival >= 150):
+            if(first_arrival >= 120):
                 # the first part of the data may have some problem
                 noise_start = 100
-            elif(first_arrival >= 100):
+            elif(first_arrival >= 70):
                 noise_start = 50
             else:
                 noise_start = 0
         noise_win_start = event_time + noise_start
         # avoid containning the first arrival
-        if(first_arrival > 30):
-            noise_win_end = event_time+first_arrival-30
+        if(first_arrival > 10):
+            noise_win_end = event_time+first_arrival-10
         else:
             noise_win_end = event_time+first_arrival
         tr_noise = data_tr.slice(noise_win_start, noise_win_end)
+        tr_noise.taper(0.05, type="hann")
         noise_max_amp = np.max(np.abs(tr_noise.data))
         noise_average_energy = np.sum(tr_noise.data**2)/len(tr_noise.data)
         return noise_average_energy, noise_max_amp
