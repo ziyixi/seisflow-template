@@ -236,7 +236,7 @@ def weight_and_write_adjoint_source_asdf(
                 data=specfem_adj_source, data_type="AdjointSource", path=tag)
     del output_asdf
     # save weighting pkl
-    save_pickle(join(output_dir, f"{used_gcmtid}.pkl"), weighting_dict)
+    save_pickle(join(output_dir, f"weight.{used_gcmtid}.pkl"), weighting_dict)
 
 
 def write_stations_adjoint(data_asdf_body_waveforms_list, stations_path, output_dir, used_gcmtid):
@@ -391,3 +391,24 @@ def run(misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_a
     del data_asdf_body
     del sync_asdf_body
     del raw_sync_asdf_body
+
+
+@click.command()
+@click.option('--conf', required=True, type=str, help="configuration file name in the configuration directory")
+def main(conf):
+    config_path = join("..", "configuration", conf)
+    # load configuration
+    misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_asdf_body_path, \
+        data_asdf_surface_path, sync_asdf_surface_path, raw_sync_asdf_surface_path, output_dir, stations_path,\
+        used_gcmtid, consider_surface,  \
+        use_geographical_weight, use_category_weight, snr_weight, cc_weight, deltat_weight = load_configure(
+            config_path)
+    run(misfit_windows_dir, data_asdf_body_path, sync_asdf_body_path, raw_sync_asdf_body_path,
+        data_asdf_surface_path, sync_asdf_surface_path, raw_sync_asdf_surface_path, output_dir, stations_path,
+        used_gcmtid, consider_surface,
+        use_geographical_weight, use_category_weight, snr_weight, cc_weight, deltat_weight
+        )
+
+
+if __name__ == "__main__":
+    main()
