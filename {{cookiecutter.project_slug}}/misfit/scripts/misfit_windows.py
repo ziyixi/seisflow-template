@@ -20,9 +20,6 @@ class Misfit_window(Window):
         self.snr_energy = None
         self.snr_amp = None
         self.deltat = None
-        # zero-lag
-        self.cc_zerolag = None
-        self.deltat_zerolag = None
         # we should always keep only one channel
         self.component = self.channel[-1]
 
@@ -52,7 +49,7 @@ class Misfit_window(Window):
         self.snr_amp = 20 * \
             np.log10(np.abs(signal_max_amp) / np.abs(noise_max_amp))
 
-    def update_cc_deltat_zerolagcc(self, data_asdf, sync_asdf):
+    def update_cc_deltat(self, data_asdf, sync_asdf):
         if (self.net_sta not in data_asdf.waveforms.list()):
             return
         # we assume the delta and the event_time are the same, but the starttime may be slightly different
@@ -86,57 +83,9 @@ class Misfit_window(Window):
         self.deltat, self.cc = xcorr_max(cc_all, abs_max=False)
         delta = data_tr.stats.delta
         self.deltat = self.deltat * delta
-        # update zero-lag cc and zero-lag deltat
-        if (self.component == "Z"):
-            self.cc_zerolag = self.similarity
-            self.deltat_zerolag = self.deltat
-        elif (self.component == "R"):
-            # we should split the data to the N and E direction
-            theta_R = (self.baz - 180) % 360
-            data_win_tr_N = data_win_tr.copy()
-            data_win_tr_N.data = data_win_tr.data * np.cos(np.deg2rad(theta_R))
-            data_win_tr_E = data_win_tr.copy()
-            data_win_tr_E.data = data_win_tr.data * np.sin(np.deg2rad(theta_R))
-            sync_win_tr_N = sync_win_tr.copy()
-            sync_win_tr_N.data = sync_win_tr.data * np.cos(np.deg2rad(theta_R))
-            sync_win_tr_E = sync_win_tr.copy()
-            sync_win_tr_E.data = sync_win_tr.data * np.sin(np.deg2rad(theta_R))
-            cc_N = correlate(data_win_tr_N, sync_win_tr_N, None,
-                             demean=False, normalize=None)
-            cc_E = correlate(data_win_tr_E, sync_win_tr_E, None,
-                             demean=False, normalize=None)
-            data_win_norm = np.sqrt(np.sum(data_win_tr.data ** 2))
-            sync_win_norm = np.sqrt(np.sum(sync_win_tr.data ** 2))
-            cc_all_adjoint = (cc_N + cc_E) / (data_win_norm * sync_win_norm)
-            self.cc_zerolag = cc_all_adjoint[len(cc_all_adjoint) // 2]
-            t_offset, _ = xcorr_max(cc_all_adjoint, abs_max=False)
-            self.deltat_zerolag = t_offset * delta
-        elif (self.component == "T"):
-            # we should split the data to the N and E direction
-            theta_T = (self.baz - 90) % 360
-            data_win_tr_N = data_win_tr.copy()
-            data_win_tr_N.data = data_win_tr.data * np.cos(np.deg2rad(theta_T))
-            data_win_tr_E = data_win_tr.copy()
-            data_win_tr_E.data = data_win_tr.data * np.sin(np.deg2rad(theta_T))
-            sync_win_tr_N = sync_win_tr.copy()
-            sync_win_tr_N.data = sync_win_tr.data * np.cos(np.deg2rad(theta_T))
-            sync_win_tr_E = sync_win_tr.copy()
-            sync_win_tr_E.data = sync_win_tr.data * np.sin(np.deg2rad(theta_T))
-            cc_N = correlate(data_win_tr_N, sync_win_tr_N, None,
-                             demean=False, normalize=None)
-            cc_E = correlate(data_win_tr_E, sync_win_tr_E, None,
-                             demean=False, normalize=None)
-            data_win_norm = np.sqrt(np.sum(data_win_tr.data ** 2))
-            sync_win_norm = np.sqrt(np.sum(sync_win_tr.data ** 2))
-            cc_all_adjoint = (cc_N + cc_E) / (data_win_norm * sync_win_norm)
-            self.cc_zerolag = cc_all_adjoint[len(cc_all_adjoint) // 2]
-            t_offset, _ = xcorr_max(cc_all_adjoint, abs_max=False)
-            self.deltat_zerolag = t_offset * delta
-        else:
-            raise Exception(f"no such component {self.component}")
 
     def __repr__(self):
-        return f"Windows(left={self.left},right={self.right},channel={self.channel},network={self.network},gcmtid={self.gcmtid},station={self.station},phases={self.phases},snr_energy={self.snr_energy},snr_amp={self.snr_amp},deltat={self.deltat},cc={self.cc},similarity={self.similarity},cc_zerolag={self.cc_zerolag},deltat_zerolag={self.deltat_zerolag})"
+        return f"Windows(left={self.left},right={self.right},channel={self.channel},network={self.network},gcmtid={self.gcmtid},station={self.station},phases={self.phases},snr_energy={self.snr_energy},snr_amp={self.snr_amp},deltat={self.deltat},cc={self.cc},similarity={self.similarity})"
 
     def cal_noise_average_energy(self, data_tr, first_arrival, event_time):
         """
