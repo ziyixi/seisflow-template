@@ -252,7 +252,7 @@ def weight_and_write_adjoint_source_asdf(
     for net_sta in final_adjoint_source:
         final_adjoint_source[net_sta] /= weight_normalize_factor
     # write each net_sta
-    components = ["E", "N", "Z"]
+    components = ["MXE", "MXN", "MXZ"]
     for net_sta in final_adjoint_source:
         for index_component in range(3):
             component = components[index_component]
@@ -264,7 +264,7 @@ def weight_and_write_adjoint_source_asdf(
                                1] = final_adjoint_source[net_sta][index_component, :]
             tag = net_sta.replace(".", "_") + "_" + components[index_component]
             output_asdf.add_auxiliary_data(
-                data=specfem_adj_source, data_type="AdjointSource", path=tag, parameters={})
+                data=specfem_adj_source, data_type="AdjointSources", path=tag, parameters={})
     del output_asdf
     # save weighting pkl
     save_pickle(join(output_dir, f"weight.{used_gcmtid}.pkl"), weighting_dict)
