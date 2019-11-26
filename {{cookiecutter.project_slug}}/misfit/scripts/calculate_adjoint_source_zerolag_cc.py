@@ -253,18 +253,20 @@ def weight_and_write_adjoint_source_asdf(
         final_adjoint_source[net_sta] /= weight_normalize_factor
     # write each net_sta
     components = ["MXE", "MXN", "MXZ"]
+    # subprocess.call(f"mkdir -p {join(output_dir,used_gcmtid)}", shell=True)
     for net_sta in final_adjoint_source:
         for index_component in range(3):
             component = components[index_component]
-            specfem_adj_source = np.empty((adjoint_source_length, 2))
-            specfem_adj_source[:, 0] = np.linspace(
-                0, (adjoint_source_length - 1) * trace_delta, adjoint_source_length)
-            specfem_adj_source[:, 0] -= time_offset
-            specfem_adj_source[:,
-                               1] = final_adjoint_source[net_sta][index_component, :]
+            specfem_adj_source = np.empty(adjoint_source_length)
+            # specfem_adj_source[:, 0] = np.linspace(
+            #     0, (adjoint_source_length - 1) * trace_delta, adjoint_source_length)
+            # specfem_adj_source[:, 0] -= time_offset
+            specfem_adj_source[:] = final_adjoint_source[net_sta][index_component, :]
             tag = net_sta.replace(".", "_") + "_" + components[index_component]
             output_asdf.add_auxiliary_data(
                 data=specfem_adj_source, data_type="AdjointSources", path=tag, parameters={})
+            # np.savetxt(join(output_dir, used_gcmtid,
+            #                 f"{net_sta}.{components[index_component]}.adj"), specfem_adj_source)
     del output_asdf
     # save weighting pkl
     save_pickle(join(output_dir, f"weight.{used_gcmtid}.pkl"), weighting_dict)

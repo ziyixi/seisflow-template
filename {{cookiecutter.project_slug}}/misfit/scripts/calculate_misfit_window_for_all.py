@@ -79,6 +79,10 @@ def main(conf):
     all_gcmtids = list(all_evdps.keys())
     single_run_iters = wrap_single_event(windows_dir, first_arrival_dir, baz_dir, data_asdf_dir, sync_asdf_dir,
                                          output_dir, considered_freq_seconds, max_time_seconds, all_gcmtids)
-    with multiprocessing.Pool(processes) as p:
+    with multiprocessing.Pool(int(processes)) as p:
         unused_list = list(
             tqdm.tqdm(p.imap(kernel, single_run_iters), total=len(single_run_iters)))
+
+
+if __name__ == "__main__":
+    main()

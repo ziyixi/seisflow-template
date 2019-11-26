@@ -70,7 +70,7 @@ class Misfit_window(Window):
             sync_tr.trim(data_tr.stats.starttime, sync_tr.stats.endtime)
             sync_tr.stats.starttime = data_tr.stats.starttime
         else:
-            raise Exception("error in processed data asdf!")
+            return
         # cut to the window
         data_win_tr = data_tr.slice(self.left, self.right)
         data_win_tr.taper(0.05, type="hann")
