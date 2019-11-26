@@ -120,6 +120,9 @@ def calculate_adjoint_source_each_window(mistit_window, raw_sync_asdf_trace, syn
     adjoint_source_final.data[:] = 0.0
     adjoint_source_final.data[offset_unwindowed_raw:
                               offset_unwindowed_raw+len_adjoint_source_unwindowed] = adjoint_source_unwindowed.data
+    # * fix the problem of nan
+    if (np.isnan(mistit_window.snr_energy)):
+        adjoint_source_final.data[:] = 0.0
     return adjoint_source_final
 
 
