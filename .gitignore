@@ -4,3 +4,4 @@
 *h5
 *tar.gz
 *txt
+{{cookiecutter.project_slug}}/source_inversion/dev/*

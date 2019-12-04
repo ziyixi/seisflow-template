@@ -134,6 +134,8 @@ def cal_cos_weight(value, value1, value2):
         result = 0.5+0.5*np.cos(np.pi*(value2-value)/(value2-value1))
     else:
         result = 1
+    if(np.isnan(value)):
+        result=0
     return result
 
 
@@ -146,6 +148,8 @@ def cal_cos_weight_deltat(value, value1, value2):
             np.cos(np.pi * (value2 - value) / (value2 - value1))
     else:
         result = 0
+    if(np.isnan(value)):
+        result=0
     return result
 
 
@@ -224,13 +228,7 @@ def weight_and_write_adjoint_source_asdf(
                 wsnr = each_weight.snr
                 wcategory = each_weight.category
                 wgeographical = each_weight.geographical
-                try:
-                    weight_normalize_factor += wcc * wdeltat * wsnr * wcategory * wgeographical
-                except:
-                    print(each_misfit_window)
-                    print(each_adjoint_trace)
-                    print(each_weight)
-                    exit()
+                weight_normalize_factor += wcc * wdeltat * wsnr * wcategory * wgeographical
                 if (each_misfit_window.component == "Z"):
                     adjoint_source[2, :] += each_adjoint_trace.data * \
                         wcc * wdeltat * wsnr * wcategory * wgeographical

@@ -28,13 +28,13 @@ class Misfit_window(Window):
         self.first_arrival = first_arrival_dict[self.gcmtid][self.net_sta]
         self.baz = baz_dict[self.gcmtid][self.net_sta]
 
-    def update_snr(self, data_asdf):
+    def update_snr(self, data_asdf,sync_asdf):
         if (self.net_sta not in data_asdf.waveforms.list()):
             return
         data_wg = data_asdf.waveforms[self.net_sta]
         data_tag = data_wg.get_waveform_tags()[0]
         data_tr = data_wg[data_tag].select(component=self.component)[0].copy()
-        event_time = data_asdf.events[0].origins[0].time
+        event_time = sync_asdf.events[0].origins[0].time
         # get the noise window
         signal_st = data_tr.slice(self.left, self.right)
         signal_st.taper(0.05, type="hann")
@@ -67,8 +67,13 @@ class Misfit_window(Window):
         if (time_difference <= data_tr.stats.delta):
             sync_tr.stats.starttime = data_tr.stats.starttime
         elif ((time_difference <= tolerance_time) and (data_tr.stats.starttime <= self.left)):
-            sync_tr.trim(data_tr.stats.starttime, sync_tr.stats.endtime)
-            sync_tr.stats.starttime = data_tr.stats.starttime
+            # ! may be fixed in the future
+            if(sync_tr.stats.starttime<data_tr.stats.starttime):
+                sync_tr.trim(data_tr.stats.starttime, sync_tr.stats.endtime)
+                sync_tr.stats.starttime = data_tr.stats.starttime
+            else:
+                data_tr.trim(sync_tr.stats.starttime,data_tr.stats.endtime)
+                sync_tr.stats.starttime = data_tr.stats.starttime
         else:
             return
         # cut to the window
