@@ -42,7 +42,7 @@ class Misfit_window(Window):
         time_difference = np.abs(
             sync_tr.stats.starttime - data_tr.stats.starttime)
         if (time_difference <= data_tr.stats.delta):
-            sync_tr.stats.starttime = data_tr.stats.starttimeee
+            sync_tr.stats.starttime = data_tr.stats.starttime
         elif ((time_difference <= tolerance_time) and (data_tr.stats.starttime <= self.left)):
             # ! need to fix here later
             sync_tr.trim(data_tr.stats.starttime, sync_tr.stats.endtime)

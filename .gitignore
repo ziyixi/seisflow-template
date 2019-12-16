@@ -5,3 +5,4 @@
 *tar.gz
 *txt
 {{cookiecutter.project_slug}}/source_inversion/dev/*
+*.nc
